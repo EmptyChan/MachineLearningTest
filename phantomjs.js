@@ -21,7 +21,7 @@ server.listen(8088, function (request, response) {
 	}
 	}
 	],
-	"result": "page & cookies"
+	"result": "page & cookie"
 	}
 
 	 */
@@ -32,13 +32,7 @@ server.listen(8088, function (request, response) {
 	var operation = request.post.operation;
 	console.log(operation);
 	var result = request.post.result;
-	/*var data = JSON.parse(request.post);
-	console.log(data);
-	var url = data.Key.toString();
-	console.log(url);
-	var dom = data.Value.toString();
-	console.log(dom);*/
-
+	console.log(result);
 	var code = 0;
 	var page = require('webpage').create();
 	page.viewportSize = {
@@ -65,28 +59,34 @@ server.listen(8088, function (request, response) {
 	};
 	//根据Phantomjs的官网，这个回调在打开新标签页会触发
 	page.onPageCreated = function (newPage) {
-		//console.log('A new child page was created! Its requested URL is not yet available, though.');
+		console.log('A new child page was created! Its requested URL is not yet available, though.');
 		newPage.onLoadFinished = function (status) {
 			console.log('A child page is Loaded: ' + newPage.url);
 			//newPage.render('newPage.png');
 			response.write(newPage.url);
 			response.statusCode = code;
-			response.close(); //写入返回给.net端的响应内容。
+			response.close();
 		};
 	};
 	//嵌入的资源加载时会触发这个回调
 	page.onResourceRequested = function (requestData, networkRequest) {
 		//console.log('Request (#' + requestData.id + '): ' + JSON.stringify(requestData));
-		if (requestData.url.match(/.*google.*/g) != null) {
-			console.log('Request (#' + requestData.id + '): ' + JSON.stringify(requestData));
-			networkRequest.abort();
-		}
+		//if (requestData.url.match(/.*google.*/g) != null) {
+		//	console.log('Request (#' + requestData.id + '): ' + JSON.stringify(requestData));
+		//	networkRequest.abort();
+		//}
 	};
 	//资源加载失败时触发这个回调
 	page.onResourceError = function (resourceError) {
 		console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')');
 		console.log('Error code: ' + resourceError.errorCode + '. Description: ' + resourceError.errorString);
 	};
+	/*page.onNavigationRequested = function (url, type, willNavigate, main) {
+	console.log('Trying to navigate to: ' + url);
+	console.log('Caused by: ' + type);
+	console.log('Will actually navigate: ' + willNavigate);
+	console.log('Sent from the page\'s main frame: ' + main);
+	};*/
 	//让Phantomjs帮助我们去请求页面
 	page.open(url, function (status) {
 		console.log("----" + status);
@@ -120,6 +120,7 @@ server.listen(8088, function (request, response) {
 						var dom_el;
 						if (ele.hasOwnProperty("click")) {
 							var doit = ele.click;
+							console.log('dom::' + doit.dom);
 							switch (doit.type) {
 							case "id":
 								dom_el = document.getElementById(doit.dom);
@@ -130,11 +131,16 @@ server.listen(8088, function (request, response) {
 							case "tag":
 								dom_el = document.getElementsByTagName(doit.dom);
 								break;
-							case "select":
+							case "css":
 								dom_el = document.querySelector(doit.dom);
 								break;
 							}
-							dom_el.click();
+							if (dom_el != null) {
+								dom_el.click();
+								console.log(doit.dom + ' click!!!!');
+							} else {
+								console.log('error::' + doit.dom);
+							}
 						} else if (ele.hasOwnProperty("input")) {
 							var doit = ele.input;
 							switch (doit.type) {
@@ -147,53 +153,64 @@ server.listen(8088, function (request, response) {
 							case "tag":
 								dom_el = document.getElementsByTagName(doit.dom);
 								break;
-							case "select":
+							case "css":
 								dom_el = document.querySelector(doit.dom);
 								break;
 							}
-							dom_el.value = doit.value;
-						}
-					}
-				}, operation);
-				//导航
-				page.onNavigationRequested = function (url, type, willNavigate, main) {
-					console.log('Trying to navigate to: ' + url);
-					console.log('Caused by: ' + type);
-					console.log('Will actually navigate: ' + willNavigate);
-					console.log('Sent from the page\'s main frame: ' + main);
-					page.onLoadFinished = function (status) {
-						var return_str = result.split('&');
-						var return_result = {
-							"result": {}
-						};
-						for (var i = 0; i < return_str.length; i++) {
-							var type = return_str[i].trim();
-							switch (type) {
-							case "page":
-								return_result.result.page = page.content;
-								break;
-							case "cookie":
-								var temp;
-								var cookies = page.cookies;
-								for (var i in cookies) {
-									temp += cookies[i].name + '=' + cookies[i].value;
-								}
-								return_result.result.cookie = temp;
+							if (dom_el != null) {
+								dom_el.value = doit.value;
+								console.log(doit.dom + ' input>>>>' + doit.value);
+							} else {
+								console.log('error::' + doit.dom);
 							}
 						}
-						page.render('page.png');
-						response.write(JSON.stringify(return_result));
-						response.statusCode = code;
-						response.close();
+					}
+					return "11111";
+				}, operation);
+			}, 50000);
+			page.onUrlChanged = function (targetUrl) {
+				console.log('New URL: ' + targetUrl);
+			};
+			//一级导航
+			page.onNavigationRequested = function (url, type, willNavigate, main) {
+				console.log('Trying to navigate to: ' + url);
+				console.log('Caused by: ' + type);
+				console.log('Will actually navigate: ' + willNavigate);
+				console.log('Sent from the page\'s main frame: ' + main);
+				page.onLoadFinished = function (status) {
+					var return_str = result.split('&');
+					var return_result = {
+						"result": {}
 					};
+					for (var i = 0; i < return_str.length; i++) {
+						var type = return_str[i].trim();
+						switch (type) {
+						case "page":
+							return_result.result.page = page.content;
+							break;
+						case "cookie":
+							var temp;
+							var cookies = page.cookies;
+							for (var i in cookies) {
+								temp += cookies[i].name + '=' + cookies[i].value;
+							}
+							return_result.result.cookie = temp;
+						}
+					}
+					page.render('page.png');
+					response.write(JSON.stringify(return_result));
+					response.statusCode = code;
+					response.close();
 				};
-			}, 10000);
+			};
 		}
 	});
 	//根据Phantomjs的官网，这个回调主要应对执行evaluate函数内部的console.log输出，因为两个环境是隔离的。
 	page.onConsoleMessage = function (msg, lineNum, sourceId) {
 		console.log("$$$$$" + msg);
+		console.log("$$$$$" + lineNum);
 	};
+
 	page.onError = function (msg, trace) {
 		var msgStack = ['PHANTOM ERROR: ' + msg];
 		if (trace && trace.length) {
