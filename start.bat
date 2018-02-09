@@ -1,1 +1,0 @@
-phantomjs --ssl-protocol=any --load-images=true --debug=true phantomjs.js
