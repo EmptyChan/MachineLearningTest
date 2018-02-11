@@ -1,0 +1,3 @@
+young	myope	no	reduced	no lenses
+pre	myope	no	reduced	no lenses
+presbyopic	myope	no	reduced	lenses

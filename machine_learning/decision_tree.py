@@ -254,5 +254,47 @@ def fishTest():
     createPlot(myTree)
 
 
+def contact_lensesTest():
+    """
+    Desc:
+        预测隐形眼镜的测试代码
+    Returns:
+        none
+    """
+    # 记载数据
+    with open('./lenses.txt', mode='r') as f:
+        lenses = [inp.strip().split('\t') for inp in f.readlines()]
+        # labels
+        labels = ['age', 'prescript', 'astigmatic', 'tearRate']
+        # 构造决策树
+        lenses_tree = create_tree(lenses, labels)
+        print(lenses_tree)
+        createPlot(lenses_tree)
+        return lenses_tree
+
+
+def storeTree(inputTree, filename):
+    import pickle
+    # -------------- 第一种方法 start --------------
+    # fw = open(filename, 'w')
+    # pickle.dump(inputTree, fw)
+    # fw.close()
+    # -------------- 第一种方法 end --------------
+
+    # -------------- 第二种方法 start --------------
+    with open(filename, 'wb') as fw:
+        pickle.dump(inputTree, fw)
+    # -------------- 第二种方法 start --------------
+
+
+def grabTree(filename):
+    import pickle
+    with open(filename, 'rb') as fr:
+        return pickle.load(fr)
+
+
 if __name__ == '__main__':
-    fishTest()
+    # fishTest()
+    # lenses_tree = contact_lensesTest()
+    # storeTree(lenses_tree, 'lenses_tree.m')
+    createPlot(grabTree('lenses_tree.m'))
