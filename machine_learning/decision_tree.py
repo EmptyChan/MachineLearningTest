@@ -4,10 +4,21 @@
  Description:
  User: jinhuichen
  Date: 1/31/2018 10:28 AM 
- Description: 
+ Description: http://blog.csdn.net/zjsghww/article/details/51638126
+            https://www.cnblogs.com/wsine/p/5180321.html
+            http://blog.csdn.net/x454045816/article/details/44726921
+            http://www.cnblogs.com/yonghao/p/5122703.html
+            https://www.cnblogs.com/yonghao/p/5135386.html
+            https://www.jianshu.com/p/fe477e763805
+            http://www.cnblogs.com/Erdos001/p/5777465.html
 """
+import io
 from math import log
+
+import sys
+
 from machine_learning.decision_tree_plot import createPlot
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 print(__doc__)
 
@@ -17,12 +28,14 @@ def create_data_set():
     Returns:
         返回数据集和对应的label标签
     """
-    data_set = [['帅', '豪', '高', '嫁'],
-                ['帅', '豪', '矮', '嫁'],
-                ['帅', '穷', '高', '不嫁'],
-                ['丑', '豪', '矮', '嫁'],
-                ['丑', '穷', '矮', '不嫁']]
-    labels = ['长相', '有钱', '身高']
+    data_set = [['帅', '豪', '高', 24, '嫁'],
+                ['帅', '豪', '矮', 26, '不嫁'],
+                ['帅', '穷', '高', 50, '不嫁'],
+                ['丑', '豪', '矮', 40, '嫁'],
+                ['丑', '穷', '矮', 26, '不嫁'],
+                ['帅', '穷', '矮', 27, '不嫁'],
+                ['丑', '穷', '高', 30, '嫁']]
+    labels = ['长相', '有钱', '身高', '年龄']
     return data_set, labels
 
 
@@ -101,6 +114,8 @@ def choose_best_feature(data_set):
     base_entropy = calculate_shannon_entropy(data_set)
     # 最佳信息增益和最优的特征index
     base_info_gain, best_feature = 0.0, -1
+    # 最佳信息增益率
+    best_info_gain_ratio = 0
     for i in range(num_feature):
         # 获取下标是i的特征列所有的特征表示情况, 例如长相，有帅和丑2种情况
         current_datas = [example[i] for example in data_set]
@@ -108,18 +123,28 @@ def choose_best_feature(data_set):
         unique_values = set(current_datas)
         # 创建一个临时熵，针对当前特征
         conditional_entropy = 0.0
+        # 分裂信息度量，即惩罚参数，用来看当前属性的信息熵的大小
+        own_entropy = 0.0
         for value in unique_values:
             sub_data_set = split_data_set(data_set, i, value)  # 固定下标为i的特征后，得到单独的属性的子集（例如长相为帅的子集）
             prob = len(sub_data_set) / float(len(data_set))  # 获取长相为帅的属性值占所有行数的概率
             temp_entropy = calculate_shannon_entropy(sub_data_set)  # 即固定长相为其中某一个属性，比如帅时，它的信息熵是多少
             # 计算条件熵
             conditional_entropy += prob * temp_entropy
+            # 分裂信息度量
+            own_entropy -= prob * log(prob, 2)
         # 信息增益等于原始信息熵减去固定某一个特征后的条件熵，我们的目的是获取最大的信息增益
         info_gain = base_entropy - conditional_entropy
-        print(str(i) + '>>>>>>' + str(info_gain))
-        if info_gain > base_info_gain:
-            base_info_gain = info_gain  # 赋值最佳信息增益
-            best_feature = i  # 获取最佳特征
+        if own_entropy == 0:  # 分裂属性度量为0
+            continue
+        info_gain_ratio = info_gain / own_entropy
+        print(str(i) + '>>>>>>' + str(info_gain_ratio))
+        if info_gain_ratio > best_info_gain_ratio:
+            best_info_gain_ratio = info_gain_ratio
+            best_feature = i
+        # if info_gain > base_info_gain:
+        #     base_info_gain = info_gain  # 赋值最佳信息增益
+        #     best_feature = i  # 获取最佳特征
     # print(base_info_gain)
     # print(best_feature)
     return best_feature
@@ -248,7 +273,7 @@ def fishTest():
     myTree = create_tree(myDat, copy.deepcopy(labels))
     print(myTree)
     # [1, 1]表示要取的分支上的节点位置，对应的结果值
-    print(classify(myTree, labels, ['丑', '豪', '高']))
+    print(classify(myTree, labels, ['丑', '豪', '高', 30]))
 
     # 画图可视化展现
     createPlot(myTree)
@@ -294,7 +319,7 @@ def grabTree(filename):
 
 
 if __name__ == '__main__':
-    # fishTest()
+    fishTest()
     # lenses_tree = contact_lensesTest()
     # storeTree(lenses_tree, 'lenses_tree.m')
-    createPlot(grabTree('lenses_tree.m'))
+    # createPlot(grabTree('lenses_tree.m'))
