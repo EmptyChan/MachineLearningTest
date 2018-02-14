@@ -36,7 +36,8 @@ def create_data_set():
                 ['帅', '穷', '矮', 27, '不嫁'],
                 ['丑', '穷', '高', 30, '嫁']]
     labels = ['长相', '有钱', '身高', '年龄']
-    return data_set, labels
+    types = [0, 0, 0, 1]
+    return data_set, labels, types
 
 
 def calculate_shannon_entropy(data_set):
@@ -100,7 +101,7 @@ def split_data_set(data_set, index, value):
     return return_data_set
 
 
-def choose_best_feature(data_set):
+def choose_best_feature(data_set, types):
     """chooseBestFeatureToSplit(选择最好的特征)
     Args:
        dataSet 数据集
@@ -117,27 +118,31 @@ def choose_best_feature(data_set):
     # 最佳信息增益率
     best_info_gain_ratio = 0
     for i in range(num_feature):
+        type_type = types[i]
         # 获取下标是i的特征列所有的特征表示情况, 例如长相，有帅和丑2种情况
         current_datas = [example[i] for example in data_set]
-        # 剔除重复值，保留所有属性状态
-        unique_values = set(current_datas)
-        # 创建一个临时熵，针对当前特征
-        conditional_entropy = 0.0
-        # 分裂信息度量，即惩罚参数，用来看当前属性的信息熵的大小
-        own_entropy = 0.0
-        for value in unique_values:
-            sub_data_set = split_data_set(data_set, i, value)  # 固定下标为i的特征后，得到单独的属性的子集（例如长相为帅的子集）
-            prob = len(sub_data_set) / float(len(data_set))  # 获取长相为帅的属性值占所有行数的概率
-            temp_entropy = calculate_shannon_entropy(sub_data_set)  # 即固定长相为其中某一个属性，比如帅时，它的信息熵是多少
-            # 计算条件熵
-            conditional_entropy += prob * temp_entropy
-            # 分裂信息度量
-            own_entropy -= prob * log(prob, 2)
-        # 信息增益等于原始信息熵减去固定某一个特征后的条件熵，我们的目的是获取最大的信息增益
-        info_gain = base_entropy - conditional_entropy
-        if own_entropy == 0:  # 分裂属性度量为0
-            continue
-        info_gain_ratio = info_gain / own_entropy
+        if type_type == 0:
+            # 剔除重复值，保留所有属性状态
+            unique_values = set(current_datas)
+            # 创建一个临时熵，针对当前特征
+            conditional_entropy = 0.0
+            # 分裂信息度量，即惩罚参数，用来看当前属性的信息熵的大小
+            own_entropy = 0.0
+            for value in unique_values:
+                sub_data_set = split_data_set(data_set, i, value)  # 固定下标为i的特征后，得到单独的属性的子集（例如长相为帅的子集）
+                prob = len(sub_data_set) / float(len(data_set))  # 获取长相为帅的属性值占所有行数的概率
+                temp_entropy = calculate_shannon_entropy(sub_data_set)  # 即固定长相为其中某一个属性，比如帅时，它的信息熵是多少
+                # 计算条件熵
+                conditional_entropy += prob * temp_entropy
+                # 分裂信息度量
+                own_entropy -= prob * log(prob, 2)
+            # 信息增益等于原始信息熵减去固定某一个特征后的条件熵，我们的目的是获取最大的信息增益
+            info_gain = base_entropy - conditional_entropy
+            if own_entropy == 0:  # 分裂属性度量为0
+                continue
+            info_gain_ratio = info_gain / own_entropy
+        elif type_type == 1:  # 连续属性的分裂
+            sort_data = sorted(current_datas, key=lambda item: item[i])
         print(str(i) + '>>>>>>' + str(info_gain_ratio))
         if info_gain_ratio > best_info_gain_ratio:
             best_info_gain_ratio = info_gain_ratio
@@ -195,7 +200,7 @@ def majority_cnt(class_list):
     # # -----------majorityCnt的第二种方式 end------------------------------------
 
 
-def create_tree(data_set, labels):
+def create_tree(data_set, labels, types):
     class_list = [example[-1] for example in data_set]
     # 如果数据集的最后一列的第一个值出现的次数=整个集合的数量，也就说只有一个类别，就只直接返回结果就行
     # 第一个停止条件：所有的类标签完全相同，则直接返回该类标签。
@@ -207,7 +212,7 @@ def create_tree(data_set, labels):
     if len(data_set[0]) == 1:
         return majority_cnt(class_list)
     # 选择最优的列，得到最优列对应的label含义
-    best_feature_index = choose_best_feature(data_set)
+    best_feature_index = choose_best_feature(data_set, types)
     # 获取label的名称
     best_label = labels[best_feature_index]
     # 初始化tree
@@ -215,15 +220,17 @@ def create_tree(data_set, labels):
     # 注：labels列表是可变对象，在PYTHON函数中作为参数时传址引用，能够被全局修改
     # 所以这行代码导致函数外的同名变量被删除了元素，造成例句无法执行，提示'no surfacing' is not in list
     del(labels[best_feature_index])
+    del(types[best_feature_index])
     # 取出最优列，然后它的branch做分类
     feature_values = [example[best_feature_index] for example in data_set]  # 假设最优列是长相
     unique_list = set(feature_values)
     for unique in unique_list:
         # 求出剩余的label
-        sub_labels =labels[:]
+        sub_labels = labels[:]
+        syb_types = types[:]
         # 遍历当前选择特征包含的所有属性值，在每个数据集划分上递归调用函数createTree()， 分别创建子树
         # 即分割长相这个最优列后寻找新的最优列
-        my_tree[best_label][unique] = create_tree(split_data_set(data_set, best_feature_index, unique), sub_labels)
+        my_tree[best_label][unique] = create_tree(split_data_set(data_set, best_feature_index, unique), sub_labels, syb_types)
     return my_tree
 
 
@@ -256,7 +263,7 @@ def classify(inputTree, featLabels, testVec):
 
 def fishTest():
     # 1.创建数据和结果标签
-    myDat, labels = create_data_set()
+    myDat, labels, types = create_data_set()
     # print myDat, labels
 
     # 计算label分类标签的香农熵
@@ -270,10 +277,10 @@ def fishTest():
     # print chooseBestFeatureToSplit(myDat)
 
     import copy
-    myTree = create_tree(myDat, copy.deepcopy(labels))
+    myTree = create_tree(myDat, copy.deepcopy(labels), types)
     print(myTree)
     # [1, 1]表示要取的分支上的节点位置，对应的结果值
-    print(classify(myTree, labels, ['丑', '豪', '高', 30]))
+    print(classify(myTree, labels, ['丑', '豪', '高', 34]))
 
     # 画图可视化展现
     createPlot(myTree)
@@ -291,8 +298,9 @@ def contact_lensesTest():
         lenses = [inp.strip().split('\t') for inp in f.readlines()]
         # labels
         labels = ['age', 'prescript', 'astigmatic', 'tearRate']
+        types  = [0, 0, 0, 0]
         # 构造决策树
-        lenses_tree = create_tree(lenses, labels)
+        lenses_tree = create_tree(lenses, labels, types)
         print(lenses_tree)
         createPlot(lenses_tree)
         return lenses_tree
