@@ -11,6 +11,7 @@
             https://www.cnblogs.com/yonghao/p/5135386.html
             https://www.jianshu.com/p/fe477e763805
             http://www.cnblogs.com/Erdos001/p/5777465.html
+            http://blog.csdn.net/chenjunji123456/article/details/52189312
 """
 import io
 from math import log
@@ -101,6 +102,17 @@ def split_data_set(data_set, index, value):
     return return_data_set
 
 
+def split_continuous_data_set(data_set, index, split_value):
+    less_than_data_set = []
+    greater_than_and_equal_data_set = []
+    for feature_vector in data_set:
+        if feature_vector[index] < split_value:
+            less_than_data_set.append(feature_vector[:index] + feature_vector[index + 1:])
+        elif feature_vector[index] >= split_value:
+            greater_than_and_equal_data_set.append(feature_vector[:index] + feature_vector[index + 1:])
+    return less_than_data_set, greater_than_and_equal_data_set
+
+
 def choose_best_feature(data_set, types):
     """chooseBestFeatureToSplit(选择最好的特征)
     Args:
@@ -111,6 +123,7 @@ def choose_best_feature(data_set, types):
     # -----------选择最优特征的第一种方式 start------------------------------------
     # 求数据集合有多少列数的特征, 最后一列是label
     num_feature = len(data_set[0]) - 1
+    clazz_set = data_set[-1]
     # 原始的信息熵
     base_entropy = calculate_shannon_entropy(data_set)
     # 最佳信息增益和最优的特征index
@@ -143,6 +156,36 @@ def choose_best_feature(data_set, types):
             info_gain_ratio = info_gain / own_entropy
         elif type_type == 1:  # 连续属性的分裂
             sort_data = sorted(current_datas, key=lambda item: item[i])
+            internal_best_info_gain = 0.0
+            internal_own_entropy = 0.0
+            internal_best_own_entropy = internal_own_entropy
+            internal_conditional_entropy = 0.0
+            split_index = -1  # 用来分裂连续型属性的分裂点数目，表示有几种分裂方式，用来修正决策树偏向于选择连续性属性
+            for j in range(len(sort_data) - 1):
+                if clazz_set[j] != clazz_set[j + 1]:
+                    split_index += 1
+                    middle_value = float(sort_data[j] + sort_data[j + 1]) / 2
+                    less_than_data_set, greater_than_and_equal_data_set = split_continuous_data_set(data_set, i,
+                                                                                                    middle_value)
+                    # 计算分裂信息度量
+                    less_prob = len(less_than_data_set) / float(len(data_set))
+                    greater_prob = len(greater_than_and_equal_data_set) / float(len(data_set))
+                    internal_own_entropy -= less_prob * log(less_prob, 2)
+                    internal_own_entropy -= greater_prob * log(greater_prob, 2)
+                    if internal_own_entropy == 0:  # 分裂属性度量为0
+                        continue
+                    # 各自计算条件熵
+                    internal_conditional_entropy += less_prob * calculate_shannon_entropy(less_than_data_set)
+                    internal_conditional_entropy += greater_prob * calculate_shannon_entropy(
+                        greater_than_and_equal_data_set)
+
+                    # 获取内部最优的信息增益
+                    internal_info_gain = base_entropy - internal_conditional_entropy
+                    if internal_info_gain > internal_best_info_gain:
+                        internal_best_info_gain = internal_info_gain
+                        internal_best_own_entropy = internal_own_entropy
+            fix_gain = log(split_index, 2) / len(data_set)
+            info_gain_ratio = (internal_best_info_gain - fix_gain) / float(internal_best_own_entropy)
         print(str(i) + '>>>>>>' + str(info_gain_ratio))
         if info_gain_ratio > best_info_gain_ratio:
             best_info_gain_ratio = info_gain_ratio
@@ -298,7 +341,7 @@ def contact_lensesTest():
         lenses = [inp.strip().split('\t') for inp in f.readlines()]
         # labels
         labels = ['age', 'prescript', 'astigmatic', 'tearRate']
-        types  = [0, 0, 0, 0]
+        types = [0, 0, 0, 0]
         # 构造决策树
         lenses_tree = create_tree(lenses, labels, types)
         print(lenses_tree)
