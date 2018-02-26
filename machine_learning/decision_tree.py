@@ -12,6 +12,10 @@
             https://www.jianshu.com/p/fe477e763805
             http://www.cnblogs.com/Erdos001/p/5777465.html
             http://blog.csdn.net/chenjunji123456/article/details/52189312
+            http://blog.csdn.net/u014688145/article/details/53212112
+            http://blog.csdn.net/u014688145/article/details/53326910
+            http://leijun00.github.io/2014/09/decision-tree/
+            http://leijun00.github.io/2014/10/decision-tree-2/
 """
 import io
 from math import log
@@ -160,7 +164,8 @@ def choose_best_feature(data_set, types):
             internal_own_entropy = 0.0
             internal_best_own_entropy = internal_own_entropy
             internal_conditional_entropy = 0.0
-            split_index = -1  # 用来分裂连续型属性的分裂点数目，表示有几种分裂方式，用来修正决策树偏向于选择连续性属性
+            split_index = 0  # 用来分裂连续型属性的分裂点数目，表示有几种分裂方式，用来修正决策树偏向于选择连续性属性
+            best_split_dot = 0
             for j in range(len(sort_data) - 1):
                 if clazz_set[j] != clazz_set[j + 1]:
                     split_index += 1
@@ -184,6 +189,7 @@ def choose_best_feature(data_set, types):
                     if internal_info_gain > internal_best_info_gain:
                         internal_best_info_gain = internal_info_gain
                         internal_best_own_entropy = internal_own_entropy
+                        best_split_dot = middle_value
             fix_gain = log(split_index, 2) / len(data_set)
             info_gain_ratio = (internal_best_info_gain - fix_gain) / float(internal_best_own_entropy)
         print(str(i) + '>>>>>>' + str(info_gain_ratio))
