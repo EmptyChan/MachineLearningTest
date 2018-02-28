@@ -3,22 +3,15 @@
  Created with IntelliJ IDEA.
  Description:
  User: jinhuichen
- Date: 1/31/2018 10:28 AM 
- Description: http://blog.csdn.net/zjsghww/article/details/51638126
-            https://www.cnblogs.com/wsine/p/5180321.html
-            http://blog.csdn.net/x454045816/article/details/44726921
-            http://www.cnblogs.com/yonghao/p/5122703.html
-            https://www.cnblogs.com/yonghao/p/5135386.html
-            https://www.jianshu.com/p/fe477e763805
-            http://www.cnblogs.com/Erdos001/p/5777465.html
-            http://blog.csdn.net/chenjunji123456/article/details/52189312
-            http://blog.csdn.net/u014688145/article/details/53212112
-            http://blog.csdn.net/u014688145/article/details/53326910
-            http://leijun00.github.io/2014/09/decision-tree/
-            http://leijun00.github.io/2014/10/decision-tree-2/
-            http://blog.csdn.net/wzmsltw/article/details/51057311
-            http://blog.csdn.net/sysu_cis/article/details/51874229
+ Date: 2/28/2018 11:12 AM 
+ Description: 剪枝
+              http://blog.csdn.net/yujianmin1990/article/details/49864813
+              https://www.tuicool.com/articles/2Inaam
+              http://www.cnblogs.com/starfire86/p/5749334.html
+              http://blog.csdn.net/qq_20282263/article/details/52718532
+              https://www.jianshu.com/p/794d08199e5e
 """
+import copy
 import io
 from math import log
 
@@ -26,8 +19,6 @@ import sys
 
 from machine_learning.decision_tree_plot import createPlot
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-
-print(__doc__)
 
 
 def create_data_set():
@@ -41,7 +32,8 @@ def create_data_set():
                 ['丑', '豪', '矮', 40, '嫁'],
                 ['丑', '穷', '矮', 26, '不嫁'],
                 ['帅', '穷', '矮', 27, '不嫁'],
-                ['丑', '穷', '高', 30, '嫁']]
+                ['丑', '穷', '高', 30, '嫁'],
+                ['帅', '穷', '高', 50, '不嫁']]
     labels = ['长相', '有钱', '身高', '年龄']
     # types = [0, 0, 0, 1]
     return data_set, labels  # , types
@@ -71,7 +63,7 @@ def calculate_shannon_entropy(data_set):
         prob = float(v) / num_entries
         # 计算信息熵，以2位底数
         shannon_entropy -= prob * log(prob, 2)
-    print('信息熵' + str(shannon_entropy))
+    # print('信息熵' + str(shannon_entropy))
     # -----------计算香农熵的第一种实现方式end--------------------------------------------------------------------------------
 
     # # -----------计算香农熵的第二种实现方式start--------------------------------------------------------------------------------
@@ -174,7 +166,7 @@ def choose_best_feature(data_set, labels):
                         internal_best_own_entropy = internal_own_entropy
                         best_split_middle_value = middle_value
             best_split_dot.setdefault(labels[i], best_split_middle_value)
-            fix_gain = log(split_index, 2) / len(data_set)  # 减去一定的log2(N-1)/|D|
+            fix_gain = log(split_index, 2) / len(data_set)
             info_gain_ratio = (internal_best_info_gain - fix_gain) / float(internal_best_own_entropy)
         else:
             # 剔除重复值，保留所有属性状态
@@ -210,32 +202,27 @@ def choose_best_feature(data_set, labels):
                     data_set[u][best_feature] = "<={value}".format(value=best_split_value)
                 else:
                     data_set[u][best_feature] = ">{value}".format(value=best_split_value)
-        # if info_gain > base_info_gain:
-        #     base_info_gain = info_gain  # 赋值最佳信息增益
-        #     best_feature = i  # 获取最佳特征
-    # print(base_info_gain)
-    # print(best_feature)
     return best_feature
-    # # -----------选择最佳信息增益的第二种方式 start------------------------------------
-    # # 计算初始香农熵
-    # base_entropy = calcShannonEnt(dataSet)
-    # best_info_gain = 0
-    # best_feature = -1
-    # # 遍历每一个特征
-    # for i in range(len(dataSet[0]) - 1):
-    #     # 对当前特征进行统计
-    #     feature_count = Counter([data[i] for data in dataSet])
-    #     # 计算分割后的香农熵
-    #     new_entropy = sum(feature[1] / float(len(dataSet)) * calcShannonEnt(splitDataSet(dataSet, i, feature[0])) \
-    #                    for feature in feature_count.items())
-    #     # 更新值
-    #     info_gain = base_entropy - new_entropy
-    #     print('No. {0} feature info gain is {1:.3f}'.format(i, info_gain))
-    #     if info_gain > best_info_gain:
-    #         best_info_gain = info_gain
-    #         best_feature = i
-    # return best_feature
-    # # -----------选择最优特征的第二种方式 end------------------------------------
+
+
+# 测试决策树正确率
+def testing(my_tree, data_test, labels):
+    error = 0.0
+    for i in range(len(data_test)):
+        if classify(my_tree, labels, data_test[i]) != data_test[i][-1]:
+            error += 1
+    print('myTree %d' % error)
+    return float(error)
+
+
+# 测试投票节点正确率
+def testing_major(major, data_test):
+    error = 0.0
+    for i in range(len(data_test)):
+        if major != data_test[i][-1]:
+            error += 1
+    print('major %d' % error)
+    return float(error)
 
 
 def majority_cnt(class_list):
@@ -263,7 +250,7 @@ def majority_cnt(class_list):
     # # -----------majorityCnt的第二种方式 end------------------------------------
 
 
-def create_tree(data_set, labels):
+def create_tree(data_set, labels, data_full, labels_full, test_data):
     class_list = [example[-1] for example in data_set]
     # 如果数据集的最后一列的第一个值出现的次数=整个集合的数量，也就说只有一个类别，就只直接返回结果就行
     # 第一个停止条件：所有的类标签完全相同，则直接返回该类标签。
@@ -278,6 +265,19 @@ def create_tree(data_set, labels):
     best_feature_index = choose_best_feature(data_set, labels)
     # 获取label的名称
     best_label = labels[best_feature_index]
+    unique_list_full = None
+    labels_copy = copy.deepcopy(labels)  # 用来剪枝
+    '''
+    刚开始很奇怪为什么要加一个uniqueValFull，后来思考下觉得应该是在某次划分，比如在根节点划分纹理的时候，将数据分成了清晰、模糊、稍糊三块
+    ，假设之后在模糊这一子数据集中，下一划分属性是触感，而这个数据集中只有软粘属性的西瓜，这样建立的决策树在当前节点划分时就只有软粘这一属性了，
+    事实上训练样本中还有硬滑这一属性，这样就造成了树的缺失，因此用到uniqueValFull之后就能将训练样本中有的属性值都囊括。
+    如果在某个分支每找到一个属性，就在其中去掉一个，最后如果还有剩余的根据父节点投票决定。
+    但是即便这样，如果训练集中没有出现触感属性值为“一般”的西瓜，但是分类时候遇到这样的测试样本，那么应该用父节点的多数类作为预测结果输出。
+    '''
+    if type(data_set[0][best_feature_index]).__name__ == 'str':
+        current_label_index = labels_full.index(labels[best_feature_index])
+        feature_values_full = [example[current_label_index] for example in data_full]
+        unique_list_full = set(feature_values_full)
     # 初始化tree
     my_tree = {best_label: {}}
     # 注：labels列表是可变对象，在PYTHON函数中作为参数时传址引用，能够被全局修改
@@ -287,11 +287,24 @@ def create_tree(data_set, labels):
     feature_values = [example[best_feature_index] for example in data_set]  # 假设最优列是长相
     unique_list = set(feature_values)
     for unique in unique_list:
+        if type(data_set[0][best_feature_index]).__name__ == 'str' and \
+                ('>' in type(data_set[0][best_feature_index]).__name__ or
+                 '<=' in type(data_set[0][best_feature_index]).__name__):
+            unique_list_full.remove(unique)
         # 求出剩余的label
         sub_labels = labels[:]
         # 遍历当前选择特征包含的所有属性值，在每个数据集划分上递归调用函数createTree()， 分别创建子树
         # 即分割长相这个最优列后寻找新的最优列
-        my_tree[best_label][unique] = create_tree(split_data_set(data_set, best_feature_index, unique), sub_labels)
+        my_tree[best_label][unique] = create_tree(split_data_set(data_set, best_feature_index, unique), sub_labels,
+                                                  data_full, labels_full, split_data_set(test_data, best_feature_index,
+                                                                                         unique))
+    # if type(data_set[0][best_feature_index]).__name__ == 'str':
+    #     for v in unique_list_full:
+    #         my_tree[best_label][v] = majority_cnt(class_list)
+    # 如果测试的错误率大于
+    if testing(my_tree, test_data, labels_copy) > testing_major(majority_cnt(class_list), test_data):
+        return majority_cnt(class_list)
+    print(my_tree)
     return my_tree
 
 
@@ -322,7 +335,7 @@ def classify(inputTree, featLabels, testVec):
         else:
             key = ">{value}".format(value=split_key)
     valueOfFeat = secondDict[key]
-    print('+++' + str(firstStr) + 'xxx' + str(secondDict) + '---' + str(key) + '>>>' + str(valueOfFeat))
+    # print('+++' + str(firstStr) + 'xxx' + str(secondDict) + '---' + str(key) + '>>>' + str(valueOfFeat))
     # 判断分枝是否结束: 判断valueOfFeat是否是dict类型
     if isinstance(valueOfFeat, dict):
         classLabel = classify(valueOfFeat, featLabels, testVec)
@@ -345,9 +358,10 @@ def fishTest():
 
     # # 计算最好的信息增益的列
     # print chooseBestFeatureToSplit(myDat)
-
+    train_data = myDat[:]
+    test_data = myDat[:]
     import copy
-    myTree = create_tree(myDat, copy.deepcopy(labels))
+    myTree = create_tree(train_data, copy.deepcopy(labels), myDat, copy.deepcopy(labels), test_data)
     print(myTree)
     # [1, 1]表示要取的分支上的节点位置，对应的结果值
     print(classify(myTree, labels, ['丑', '豪', '高', 34]))
@@ -364,15 +378,16 @@ def contact_lensesTest():
         none
     """
     # 记载数据
-    with open('./lenses.txt', mode='r') as f:
-        lenses = [inp.strip().split('\t') for inp in f.readlines()]
-        # labels
-        labels = ['age', 'prescript', 'astigmatic', 'tearRate']
-        # 构造决策树
-        lenses_tree = create_tree(lenses, labels)
-        print(lenses_tree)
-        createPlot(lenses_tree)
-        return lenses_tree
+    # with open('./lenses.txt', mode='r') as f:
+    #     lenses = [inp.strip().split('\t') for inp in f.readlines()]
+    #     # labels
+    #     labels = ['age', 'prescript', 'astigmatic', 'tearRate']
+    #     # 构造决策树
+    #     lenses_tree = create_tree(lenses, labels)
+    #     print(lenses_tree)
+    #     createPlot(lenses_tree)
+    #     return lenses_tree
+    pass
 
 
 def storeTree(inputTree, filename):
