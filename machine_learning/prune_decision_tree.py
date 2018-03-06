@@ -10,10 +10,11 @@
               http://www.cnblogs.com/starfire86/p/5749334.html
               http://blog.csdn.net/qq_20282263/article/details/52718532
               https://www.jianshu.com/p/794d08199e5e
+              http://blog.csdn.net/o1101574955/article/details/50371499
 """
 import copy
 import io
-from math import log
+from math import log   #  , sqrt
 
 import sys
 
@@ -115,6 +116,7 @@ def choose_best_feature(data_set, labels):
     """chooseBestFeatureToSplit(选择最好的特征)
     Args:
        dataSet 数据集
+       labels 标签
     Returns:
        bestFeature 最优的特征列
     """
@@ -225,6 +227,119 @@ def testing_major(major, data_test):
     return float(error)
 
 
+def get_count_for_classify(input_tree: dict, data_set, labels, result_count: list):
+    first_str = list(input_tree.keys())[0]
+    second_dict = input_tree.get(first_str)
+    feature_index = labels.index(first_str)
+    for k, v in second_dict.items():
+        right_count = 0
+        error_count = 0
+        temp_labels = copy.deepcopy(labels)
+        temp_labels.remove(first_str)
+        sub_data_set = split_data_set(data_set, feature_index, k)
+        if type(v).__name__ == 'dict':
+            get_count_for_classify(v, sub_data_set, temp_labels, result_count)
+        else:
+            for each in sub_data_set:
+                if str(each[-1]) == str(v):
+                    right_count += 1
+                else:
+                    error_count += 1
+            result_count.append([right_count, error_count])
+
+
+def PEP_prune_branch(input_tree: dict, data_set, labels: list):
+    first_str = list(input_tree.keys())[0]
+    second_dict = input_tree.get(first_str)
+    feature_index = labels.index(first_str)
+    new_tree = {first_str: {}}
+    labels.remove(feature_index)
+    for k, v in second_dict.items():
+        if isinstance(v, dict):
+            sub_data_set = split_data_set(data_set, feature_index, k)
+            result_count = []
+            temp_labels = copy.deepcopy(labels)
+            get_count_for_classify(input_tree, sub_data_set, temp_labels, result_count)
+            all_count = 0
+            error_count = 0
+            for right, error in result_count:
+                all_count += right + error
+                error_count += error
+            if error_count == 0:  # 不存在错误
+                new_tree[first_str].setdefault(k, v)
+                continue
+            leaf_error = error_count + len(result_count) * 0.5  # 子节点的错误率，即剪枝之前的错误率
+            sub_tree_error = error_count + 0.5  # 子树自己的错误率
+
+        else:
+            new_tree[first_str].setdefault(k, v)
+    return new_tree
+
+# # PEP 悲观剪枝
+# def getCount(inputTree,dataSet,featLabels,count):
+#     #global num
+#     firstStr = inputTree.keys()[0]
+#     secondDict = inputTree[firstStr]
+#     featIndex = featLabels.index(firstStr)
+#     #count=[]
+#     for key in secondDict.keys():
+#         rightcount = 0
+#         wrongcount = 0
+#         tempfeatLabels = featLabels[:]
+#         subDataSet= split_data_set(dataSet, featIndex, key)
+#         tempfeatLabels.remove(firstStr)
+#         if type(secondDict[key]).__name__ == 'dict':
+#             getCount(secondDict[key], subDataSet, tempfeatLabels, count)
+#             #在这里加上剪枝的代码，可以实现自底向上的悲观剪枝
+#         else:
+#             for eachdata in subDataSet:
+#                 if str(eachdata[-1]) == str(secondDict[key]):
+#                     rightcount += 1
+#                 else:
+#                     wrongcount += 1
+#             count.append([rightcount, wrongcount, secondDict[key]])
+#             #num+=rightcount+wrongcount
+#
+#
+# # PEP 悲观剪枝
+# def cutBranch_uptodown(inputTree,dataSet,featLabels):    #自顶向下剪枝
+#     firstStr=inputTree.keys()[0]
+#     secondDict=inputTree[firstStr]
+#     featIndex=featLabels.index(firstStr)
+#     for key in secondDict.keys():
+#         if type(secondDict[key]).__name__=='dict':
+#             tempfeatLabels=featLabels[:]
+#         subDataSet= split_data_set(dataSet,featIndex,key)
+#         tempfeatLabels.remove(firstStr)
+#     tempcount=[]
+#     getCount(secondDict[key],subDataSet,tempfeatLabels,tempcount)
+#     print(tempcount)
+#     #计算，并判断是否可以剪枝
+#     #原误差率，显著因子取0.5
+#     tempnum=0.0
+#     wrongnum=0.0
+#     old=0.0
+#     #标准误差
+#     standwrong=0.0
+#     for var in tempcount:
+#         tempnum+=var[0]+var[1]
+#     wrongnum+=var[1]
+#     old=float(wrongnum+0.5*len(tempcount))/float(tempnum)
+#     standwrong=sqrt(tempnum*old*(1-old))
+#     #假如剪枝
+#     new=float(wrongnum+0.5)/float(tempnum)
+#     if new<=old+standwrong and new >=old-standwrong:      #要确定新叶子结点的类别
+#         #误判率最低的叶子节点的类为新叶子结点的类
+#         #在count的每一个列表类型的元素里再加一个标记类别的元素。
+#         wrongtemp=1.0
+#         newtype=-1
+#         for var in tempcount:
+#             if float(var[1]+0.5)/float(var[0]+var[1])<wrongtemp:
+#                 wrongtemp=float(var[1]+0.5)/float(var[0]+var[1])
+#                 newtype=var[-1]
+#         secondDict[key]=str(newtype)
+
+
 def majority_cnt(class_list):
     """majorityCnt(选择出现次数最多的一个结果)
     Args:
@@ -265,7 +380,7 @@ def create_tree(data_set, labels, data_full, labels_full, test_data):
     best_feature_index = choose_best_feature(data_set, labels)
     # 获取label的名称
     best_label = labels[best_feature_index]
-    unique_list_full = None
+    # unique_list_full = None
     labels_copy = copy.deepcopy(labels)  # 用来剪枝
     '''
     刚开始很奇怪为什么要加一个uniqueValFull，后来思考下觉得应该是在某次划分，比如在根节点划分纹理的时候，将数据分成了清晰、模糊、稍糊三块
@@ -274,10 +389,10 @@ def create_tree(data_set, labels, data_full, labels_full, test_data):
     如果在某个分支每找到一个属性，就在其中去掉一个，最后如果还有剩余的根据父节点投票决定。
     但是即便这样，如果训练集中没有出现触感属性值为“一般”的西瓜，但是分类时候遇到这样的测试样本，那么应该用父节点的多数类作为预测结果输出。
     '''
-    if type(data_set[0][best_feature_index]).__name__ == 'str':
-        current_label_index = labels_full.index(labels[best_feature_index])
-        feature_values_full = [example[current_label_index] for example in data_full]
-        unique_list_full = set(feature_values_full)
+    # if type(data_set[0][best_feature_index]).__name__ == 'str':
+    #     current_label_index = labels_full.index(labels[best_feature_index])
+    #     feature_values_full = [example[current_label_index] for example in data_full]
+    #     unique_list_full = set(feature_values_full)
     # 初始化tree
     my_tree = {best_label: {}}
     # 注：labels列表是可变对象，在PYTHON函数中作为参数时传址引用，能够被全局修改
@@ -287,10 +402,10 @@ def create_tree(data_set, labels, data_full, labels_full, test_data):
     feature_values = [example[best_feature_index] for example in data_set]  # 假设最优列是长相
     unique_list = set(feature_values)
     for unique in unique_list:
-        if type(data_set[0][best_feature_index]).__name__ == 'str' and \
-                ('>' in type(data_set[0][best_feature_index]).__name__ or
-                 '<=' in type(data_set[0][best_feature_index]).__name__):
-            unique_list_full.remove(unique)
+        # if type(data_set[0][best_feature_index]).__name__ == 'str' and \
+        #         ('>' in type(data_set[0][best_feature_index]).__name__ or
+        #          '<=' in type(data_set[0][best_feature_index]).__name__):
+        #     unique_list_full.remove(unique)
         # 求出剩余的label
         sub_labels = labels[:]
         # 遍历当前选择特征包含的所有属性值，在每个数据集划分上递归调用函数createTree()， 分别创建子树
@@ -302,9 +417,9 @@ def create_tree(data_set, labels, data_full, labels_full, test_data):
     #     for v in unique_list_full:
     #         my_tree[best_label][v] = majority_cnt(class_list)
     # 如果测试的错误率大于
-    if testing(my_tree, test_data, labels_copy) > testing_major(majority_cnt(class_list), test_data):
-        return majority_cnt(class_list)
-    print(my_tree)
+    # if testing(my_tree, test_data, labels_copy) > testing_major(majority_cnt(class_list), test_data):
+    #     return majority_cnt(class_list)
+    # print(my_tree)
     return my_tree
 
 
@@ -347,17 +462,6 @@ def classify(inputTree, featLabels, testVec):
 def fishTest():
     # 1.创建数据和结果标签
     myDat, labels = create_data_set()
-    # print myDat, labels
-
-    # 计算label分类标签的香农熵
-    # calcShannonEnt(myDat)
-
-    # # 求第0列 为 1/0的列的数据集【排除第0列】
-    # print '1---', splitDataSet(myDat, 0, 1)
-    # print '0---', splitDataSet(myDat, 0, 0)
-
-    # # 计算最好的信息增益的列
-    # print chooseBestFeatureToSplit(myDat)
     train_data = myDat[:]
     test_data = myDat[:]
     import copy
@@ -368,26 +472,6 @@ def fishTest():
 
     # 画图可视化展现
     createPlot(myTree)
-
-
-def contact_lensesTest():
-    """
-    Desc:
-        预测隐形眼镜的测试代码
-    Returns:
-        none
-    """
-    # 记载数据
-    # with open('./lenses.txt', mode='r') as f:
-    #     lenses = [inp.strip().split('\t') for inp in f.readlines()]
-    #     # labels
-    #     labels = ['age', 'prescript', 'astigmatic', 'tearRate']
-    #     # 构造决策树
-    #     lenses_tree = create_tree(lenses, labels)
-    #     print(lenses_tree)
-    #     createPlot(lenses_tree)
-    #     return lenses_tree
-    pass
 
 
 def storeTree(inputTree, filename):
