@@ -14,7 +14,7 @@
 """
 import copy
 import io
-from math import log   #  , sqrt
+from math import log, sqrt
 
 import sys
 
@@ -223,7 +223,7 @@ def testing_major(major, data_test):
     for i in range(len(data_test)):
         if major != data_test[i][-1]:
             error += 1
-    print('major %d' % error)
+    # print('major %d' % error)
     return float(error)
 
 
@@ -248,18 +248,21 @@ def get_count_for_classify(input_tree: dict, data_set, labels, result_count: lis
             result_count.append([right_count, error_count])
 
 
-def PEP_prune_branch(input_tree: dict, data_set, labels: list):
+def PEP_prune_branch(input_tree: dict, data_set, labels):
     first_str = list(input_tree.keys())[0]
     second_dict = input_tree.get(first_str)
     feature_index = labels.index(first_str)
     new_tree = {first_str: {}}
-    labels.remove(feature_index)
+    labels.remove(first_str)
     for k, v in second_dict.items():
         if isinstance(v, dict):
             sub_data_set = split_data_set(data_set, feature_index, k)
+            most_class = [ex[-1] for ex in sub_data_set]
+            sub_tree_all_count = len(most_class)
+            sub_tree_error_count = sub_tree_all_count - testing_major(majority_cnt(most_class), sub_data_set)
             result_count = []
             temp_labels = copy.deepcopy(labels)
-            get_count_for_classify(input_tree, sub_data_set, temp_labels, result_count)
+            get_count_for_classify(v, sub_data_set, temp_labels, result_count)
             all_count = 0
             error_count = 0
             for right, error in result_count:
@@ -268,9 +271,18 @@ def PEP_prune_branch(input_tree: dict, data_set, labels: list):
             if error_count == 0:  # 不存在错误
                 new_tree[first_str].setdefault(k, v)
                 continue
-            leaf_error = error_count + len(result_count) * 0.5  # 子节点的错误率，即剪枝之前的错误率
-            sub_tree_error = error_count + 0.5  # 子树自己的错误率
-
+            sub_tree_error = error_count + len(result_count) * 0.5  # 整一棵子树的错误率，即剪枝之前的错误率
+            leaf_error = sub_tree_error_count + 0.5  # 子树自己作为叶子节点的错误率
+            p = sub_tree_error / all_count
+            stand_wrong = sqrt(sub_tree_error * (1 - p))  # 标准差
+            print('剪枝前 %s' % str(sub_tree_error -stand_wrong))
+            print('剪枝后 %s' % str(leaf_error))
+            if sub_tree_error - stand_wrong > leaf_error:  # 剪枝
+                new_tree[first_str].setdefault(k, majority_cnt(most_class))
+            else:
+                # 继续内部剪枝
+                sub_new_tree = PEP_prune_branch(v, sub_data_set, copy.deepcopy(labels))
+                new_tree[first_str].setdefault(k, sub_new_tree)
         else:
             new_tree[first_str].setdefault(k, v)
     return new_tree
@@ -459,16 +471,27 @@ def classify(inputTree, featLabels, testVec):
     return classLabel
 
 
-def fishTest():
+def fishTest(is_flush=False):
     # 1.创建数据和结果标签
     myDat, labels = create_data_set()
     train_data = myDat[:]
     test_data = myDat[:]
     import copy
-    myTree = create_tree(train_data, copy.deepcopy(labels), myDat, copy.deepcopy(labels), test_data)
+    if not is_flush:
+        myTree = grabTree('./simple.m')
+    else:
+        myTree = create_tree(train_data, copy.deepcopy(labels), myDat, copy.deepcopy(labels), test_data)
+        print(myTree)
+        storeTree(myTree, './simple.m')
+    myTree = PEP_prune_branch(myTree, myDat, copy.deepcopy(labels))
+    k = 0
+    for item in myDat:
+        if classify(myTree, labels[:], item) == item[-1]:
+            k += 1
+    print(float(k) / len(myDat))
     print(myTree)
     # [1, 1]表示要取的分支上的节点位置，对应的结果值
-    print(classify(myTree, labels, ['丑', '豪', '高', 34]))
+    # print(classify(myTree, labels, ['丑', '豪', '高', 34]))
 
     # 画图可视化展现
     createPlot(myTree)
