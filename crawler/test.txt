@@ -1,0 +1,31 @@
+import requests
+url = 'http://localhost:5000/'
+# paras = {'url':'http://quote.eastmoney.com/sz000001.html',
+#         'jsonObject':'',
+#         'areaSelect':'{"elementName":"css","elementValue":"#emchart-0"}',
+#          'cookies':'',
+#          'type':'page'}
+# paras = {'url':'https://online.imfmedia.ie/',
+#         'jsonObject':'{"step0":{"operator":"input","elementName":"css","elementValue":"#email","inputValue":"andrew.hanhauser@gmail.com","wait":1000},"step1":{"operator":"input","elementName":"css","elementValue":"#passwrd","inputValue":"Adjility@2017","wait":1000},"step2":{"operator":"click","elementName":"css","elementValue":"button[name=login]","wait":1000}}',
+#         'areaSelect':'',
+#          'cookies':'',
+#          'type':'cookie'}
+paras = {'url':'https://online.imfmedia.ie/medicines-formulary/Molecule/Aripiprazole/248/',
+        'jsonObject':'',
+        'areaSelect':'',
+         'cookies':'[{"name":"sc_is_visitor_unique","value":"rx10571748.1522658590.156ABB9AFE6F4F53957ACC420FEB5258.1.1.1.1.1.1.1.1.1-11182984.1522658559.1.1.1.1.1.1.1.1.1","domain":".online.imfmedia.ie","path":"/","expires":1585730590,"size":130,"httpOnly":false,"secure":false,"session":false},{"name":"_gat","value":"1","domain":".imfmedia.ie","path":"/","expires":1522658618,"size":5,"httpOnly":false,"secure":false,"session":false},{"name":"_gid","value":"GA1.2.1774350383.1522658559","domain":".imfmedia.ie","path":"/","expires":1522744994,"size":31,"httpOnly":false,"secure":false,"session":false},{"name":"_ga","value":"GA1.2.56128765.1522658559","domain":".imfmedia.ie","path":"/","expires":1585730594,"size":28,"httpOnly":false,"secure":false,"session":false},{"name":"ASPSESSIONIDAETCSBQC","value":"OGALJCPALDJFPALKGMMCLBIN","domain":"online.imfmedia.ie","path":"/","expires":-1,"size":44,"httpOnly":false,"secure":true,"session":true}]',
+         'type':'page'}
+
+# paras = {'url':'https://www.newrank.cn/public/login/login.html?back=https%3A//www.newrank.cn/',
+#         'jsonObject':'{"step0":{"operator":"click","elementName":"css","elementValue":"div[data-type=pwd]","wait":5000},"step1":{"operator":"input","elementName":"css","elementValue":"#account_input","inputValue":"13208018779","wait":1000},"step2":{"operator":"input","elementName":"css","elementValue":"#password_input","inputValue":"lile02","wait":1000},"step3":{"operator":"click","elementName":"css","elementValue":"#pwd_confirm","wait":3000}}',
+#         'areaSelect':'',
+#          'cookies':'',
+#          'type':'cookie'}
+
+# paras = {'url':'https://www.newrank.cn/public/info/detail.html?account=tingtingpoem',
+#         'jsonObject':'',
+#         'areaSelect':'',
+#          'cookies':'[{"name":"ticket","value":"gQFG8TwAAAAAAAAAAS5odHRwOi8vd2VpeGluLnFxLmNvbS9xLzAyQjBETjExa0ljbTMxVnNBMDFxMW4AAgRMlsBaAwQQDgAA","domain":".newrank.cn","path":"/","expires":1522574411,"size":102,"httpOnly":false,"secure":false,"session":false},{"name":"UM_distinctid","value":"162804ad82c1be-0a0ac586928153-53483250-75300-162804ad82d59a","domain":".newrank.cn","path":"/","expires":1538295611,"size":72,"httpOnly":false,"secure":false,"session":false},{"name":"CNZZDATA1253878005","value":"630542401-1522566354-%7C1522566354","domain":"www.newrank.cn","path":"/","expires":1538295620,"size":52,"httpOnly":false,"secure":false,"session":false},{"name":"useLoginAccount","value":"true","domain":".newrank.cn","path":"/","expires":1525162820,"size":19,"httpOnly":false,"secure":false,"session":false},{"name":"Hm_lvt_a19fd7224d30e3c8a6558dcb38c4beed","value":"1522570812","domain":".newrank.cn","path":"/","expires":1554106821,"size":49,"httpOnly":false,"secure":false,"session":false},{"name":"rmbuser","value":"true","domain":".newrank.cn","path":"/","expires":1525162820,"size":11,"httpOnly":false,"secure":false,"session":false},{"name":"name","value":"13208018779","domain":".newrank.cn","path":"/","expires":1554106820,"size":15,"httpOnly":false,"secure":false,"session":false},{"name":"Hm_lpvt_a19fd7224d30e3c8a6558dcb38c4beed","value":"1522570821","domain":".newrank.cn","path":"/","expires":-1,"size":50,"httpOnly":false,"secure":false,"session":true},{"name":"token","value":"41CC1D3E19790CB545025BA9775C02FA","domain":".newrank.cn","path":"/","expires":1525162820,"size":37,"httpOnly":false,"secure":false,"session":false},{"name":"__root_domain_v","value":".newrank.cn","domain":".newrank.cn","path":"/","expires":1554106824,"size":26,"httpOnly":false,"secure":false,"session":false},{"name":"_qddaz","value":"QD.gptcqn.6cvc83.jfgjcutg","domain":".newrank.cn","path":"/","expires":1554106824,"size":31,"httpOnly":false,"secure":false,"session":false},{"name":"_qdda","value":"3-1.3dd6x5","domain":"www.newrank.cn","path":"/","expires":1522572624,"size":15,"httpOnly":false,"secure":false,"session":false},{"name":"_qddab","value":"3-xj87jt.jfgjcv0d","domain":"www.newrank.cn","path":"/","expires":-1,"size":23,"httpOnly":false,"secure":false,"session":true},{"name":"_qddamta_2852150610","value":"3-0","domain":"www.newrank.cn","path":"/","expires":1522574424,"size":22,"httpOnly":false,"secure":false,"session":false}]',
+#          'type':'page'}
+res = requests.post(url, data=paras)
+print(res.text)
